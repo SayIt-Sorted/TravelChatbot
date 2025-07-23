@@ -53,7 +53,13 @@ app = FastAPI(
 # Add CORS middleware for frontend integration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure for your frontend domain in production
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:5173", 
+        "https://*.vercel.app",
+        "https://*.netlify.app",
+        "https://*.github.io"
+    ],  # Configure for your frontend domain in production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

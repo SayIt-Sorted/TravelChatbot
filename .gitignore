@@ -67,3 +67,6 @@ token.json
 .coverage
 htmlcov/
 .pytest_cache/
+
+# Vercel
+.vercel
