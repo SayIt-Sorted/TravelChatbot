@@ -48,24 +48,10 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             
             if self.path == '/api/chat':
-                # Read request body safely
-                content_length = int(self.headers.get('Content-Length', 0))
-                if content_length > 0:
-                    body = self.rfile.read(content_length)
-                    try:
-                        data = json.loads(body.decode('utf-8'))
-                    except:
-                        data = {}
-                else:
-                    data = {}
+                # Generate a session ID
+                session_id = str(uuid.uuid4())
                 
-                message = data.get('message', '')
-                session_id = data.get('session_id') or str(uuid.uuid4())
-                
-                # Simple response for testing
-                ai_response = "Hi! I'm your AI travel assistant. I can help you book flights and accommodation. Just tell me where you want to go, when, and your budget!"
-                
-                # Return response in the format expected by the frontend
+                # Hardcoded response for testing
                 response = {
                     "status": "success",
                     "message": "POST request received",
@@ -73,7 +59,7 @@ class Handler(BaseHTTPRequestHandler):
                     "session_id": session_id,
                     "response": {
                         "type": "question",
-                        "message": ai_response,
+                        "message": "Hi! I'm your AI travel assistant. I can help you book flights and accommodation. Just tell me where you want to go, when, and your budget!",
                         "session_id": session_id
                     }
                 }
@@ -90,29 +76,25 @@ class Handler(BaseHTTPRequestHandler):
                     }
                 }
             
-            # Ensure we always write a complete response
+            # Write response
             response_json = json.dumps(response)
             self.wfile.write(response_json.encode('utf-8'))
             
         except Exception as e:
-            # If everything fails, return a safe error response
-            try:
-                error_response = {
-                    "status": "error",
-                    "message": "Internal server error",
-                    "path": "/api/chat",
-                    "session_id": str(uuid.uuid4()),
-                    "response": {
-                        "type": "error",
-                        "message": "I'm having trouble processing your request right now. Please try again in a moment.",
-                        "session_id": str(uuid.uuid4())
-                    }
+            # Simple error response
+            error_response = {
+                "status": "error",
+                "message": "Internal server error",
+                "path": "/api/chat",
+                "session_id": str(uuid.uuid4()),
+                "response": {
+                    "type": "error",
+                    "message": "I'm having trouble processing your request right now. Please try again in a moment.",
+                    "session_id": str(uuid.uuid4())
                 }
-                error_json = json.dumps(error_response)
-                self.wfile.write(error_json.encode('utf-8'))
-            except:
-                # Last resort - just send a simple error
-                self.send_error(500, "Internal server error")
+            }
+            error_json = json.dumps(error_response)
+            self.wfile.write(error_json.encode('utf-8'))
     
     def do_OPTIONS(self):
         try:
