@@ -37,7 +37,12 @@ class Handler(BaseHTTPRequestHandler):
             "status": "healthy",
             "message": "Travel AI API is running",
             "modules_loaded": MODULES_LOADED,
-            "endpoints": ["/api/chat"]
+            "endpoints": ["/api/chat"],
+            "env_check": {
+                "smtp_email": bool(os.getenv('SMTP_EMAIL')),
+                "smtp_password": bool(os.getenv('SMTP_PASSWORD')),
+                "vercel": bool(os.getenv('VERCEL'))
+            }
         }
         
         self.wfile.write(json.dumps(response, default=str).encode())
@@ -113,11 +118,15 @@ VERCEL: {'✅ Yes' if os.getenv('VERCEL') else '❌ No'}
             email_service = EmailService()
             
             # Debug: Check email service configuration
-            print(f"📧 EmailService config:")
-            print(f"   SMTP Server: {email_service.smtp_server}")
-            print(f"   SMTP Port: {email_service.smtp_port}")
-            print(f"   Sender Email: {'✅ Set' if email_service.sender_email else '❌ Missing'}")
-            print(f"   Sender Password: {'✅ Set' if email_service.sender_password else '❌ Missing'}")
+            email_debug = f"""
+📧 EMAIL SERVICE DEBUG
+SMTP Server: {email_service.smtp_server}
+SMTP Port: {email_service.smtp_port}
+Sender Email: {'✅ Set' if email_service.sender_email else '❌ Missing'}
+Sender Password: {'✅ Set' if email_service.sender_password else '❌ Missing'}
+"""
+            print(email_debug, file=sys.stderr)
+            sys.stderr.flush()
             
             # Get existing session data
             session_data = SESSIONS.get(session_id, {})
@@ -223,9 +232,13 @@ VERCEL: {'✅ Yes' if os.getenv('VERCEL') else '❌ No'}
         
         # Send email
         print(f"📧 Attempting to send email to {travel_request.user_email}...")
-        print(f"📧 Email service configured: {bool(email_service.sender_email and email_service.sender_password)}")
+        email_config_status = bool(email_service.sender_email and email_service.sender_password)
+        print(f"📧 EMAIL CONFIG STATUS: {email_config_status}", file=sys.stderr)
+        sys.stderr.flush()
+        
         email_sent = email_service.send_travel_package(travel_request, search_result)
-        print(f"📧 Email result: {email_sent}")
+        print(f"📧 EMAIL SEND RESULT: {email_sent}", file=sys.stderr)
+        sys.stderr.flush()
         
         # Clear session after completion
         if session_id in SESSIONS:
