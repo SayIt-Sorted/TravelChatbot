@@ -93,9 +93,13 @@ def main():
     print("🧪 Testing API with Local HTTP Server")
     print("=" * 50)
     
-    # Test data
-    test_message = "Book a trip from Porto to London next weekend for 3 days under 500 euros. My email is test@example.com"
-    print(f"📝 Test message: {test_message}")
+    # Test data with email
+    test_message_with_email = "Book a trip from Porto to London next weekend for 3 days under 500 euros. My email is test@example.com"
+    # Test data without email
+    test_message_without_email = "Book a trip from Porto to London next weekend for 3 days under 500 euros"
+    
+    print(f"📝 Test 1: With email - {test_message_with_email}")
+    print(f"📝 Test 2: Without email - {test_message_without_email}")
     print()
     
     # Start server
@@ -110,13 +114,20 @@ def main():
             return
         print()
         
-        # Test chat endpoint
-        print("🔍 Testing chat endpoint...")
-        success = server.test_chat(test_message)
+        # Test 1: With email (should complete successfully)
+        print("🔍 Test 1: Testing with email...")
+        success1 = server.test_chat(test_message_with_email, "test-session-1")
+        print()
         
-        if success:
+        # Test 2: Without email (should ask for email)
+        print("🔍 Test 2: Testing without email...")
+        success2 = server.test_chat(test_message_without_email, "test-session-2")
+        
+        if success1 and success2:
             print("\n🎉 API TEST SUCCESSFUL!")
-            print("✅ The API is ready for frontend consumption")
+            print("✅ The API correctly handles both scenarios:")
+            print("   - With email: Completes and sends package")
+            print("   - Without email: Asks for email first")
         else:
             print("\n❌ API TEST FAILED!")
             print("⚠️ Check the logs above for issues")

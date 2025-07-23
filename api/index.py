@@ -130,6 +130,18 @@ class Handler(BaseHTTPRequestHandler):
             travel_request = extraction_result['travel_request']
             extracted_info = extraction_result.get('extracted_info', {})
             
+            # Check if email is missing (most important)
+            if not travel_request.user_email:
+                return {
+                    "session_id": session_id,
+                    "response": {
+                        "type": "question",
+                        "message": "Great! I have all the details I need. What's your email address so I can send you the travel package?",
+                        "session_id": session_id,
+                        "extraction": extracted_info
+                    }
+                }
+            
             # Step 3: Search for travel package
             search_result = search_service.search_best_package(travel_request)
             
@@ -151,10 +163,11 @@ class Handler(BaseHTTPRequestHandler):
                 "session_id": session_id,
                 "response": {
                     "type": "success",
-                    "message": f"Perfect! I found a great travel package for {travel_request.origin} to {travel_request.destination}. I've sent the details to {travel_request.user_email}.",
+                    "message": f"Perfect! I found a great travel package for {travel_request.origin} to {travel_request.destination}. I've sent the details to {travel_request.user_email}. Check your email for the complete booking information!",
                     "travel_request": extracted_info,
                     "package": search_result.to_dict() if hasattr(search_result, 'to_dict') else search_result,
-                    "email_sent": email_sent
+                    "email_sent": email_sent,
+                    "conversation_complete": True
                 }
             }
             
