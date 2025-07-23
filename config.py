@@ -21,6 +21,10 @@ class Config:
     
     def _load_config(self) -> dict:
         """Load configuration from file or create default"""
+        # In serverless environments, just return default config
+        if os.getenv('VERCEL') or os.getenv('AWS_LAMBDA_FUNCTION_NAME'):
+            return self._get_default_config()
+            
         if self.config_file.exists():
             try:
                 with open(self.config_file, 'r') as f:
@@ -63,6 +67,10 @@ class Config:
     
     def _save_config(self, config: dict):
         """Save configuration to file"""
+        # Skip saving in serverless environments (Vercel, etc.)
+        if os.getenv('VERCEL') or os.getenv('AWS_LAMBDA_FUNCTION_NAME'):
+            return
+            
         try:
             with open(self.config_file, 'w') as f:
                 json.dump(config, f, indent=2)
