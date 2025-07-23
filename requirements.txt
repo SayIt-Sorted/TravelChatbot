@@ -1,1 +1,24 @@
-# No dependencies needed for basic HTTP handler 
+# Core API dependencies
+fastapi>=0.100.0
+uvicorn[standard]>=0.20.0
+pydantic>=2.0.0
+
+# AI and external APIs
+openai>=1.0.0
+requests>=2.31.0
+
+# Configuration and environment
+python-dotenv>=1.0.0
+
+# Email and authentication (optional)
+google-auth>=2.0.0
+google-auth-oauthlib>=1.0.0
+google-auth-httplib2>=0.2.0
+google-api-python-client>=2.0.0
+
+# Development and testing
+pytest>=7.0.0
+pytest-asyncio>=0.21.0
+
+# Vercel compatibility
+asgiref>=3.7.0 
