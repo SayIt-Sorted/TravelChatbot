@@ -104,6 +104,7 @@ Today's date: {date.today().isoformat()}"""
             
             return {
                 "travel_request": updated_request,
+                "extracted_info": result["extracted_info"],
                 "is_complete": result.get("is_complete", False),
                 "follow_up_question": result.get("follow_up_question"),
                 "confidence": result.get("confidence", 0.8),

@@ -100,6 +100,20 @@ class Handler(BaseHTTPRequestHandler):
             # Step 1: Extract travel information
             extraction_result = travel_ai.extract_travel_info(message)
             
+            # Debug: Print what we got from TravelAI
+            print(f"Extraction result: {extraction_result}")
+            
+            # Check if extraction failed
+            if not extraction_result or 'travel_request' not in extraction_result:
+                return {
+                    "session_id": session_id,
+                    "response": {
+                        "type": "question",
+                        "message": "I'm sorry, I didn't understand that. Could you please tell me where you'd like to travel from and to?",
+                        "session_id": session_id
+                    }
+                }
+            
             if not extraction_result.get('is_complete', False):
                 # Ask follow-up question
                 follow_up = extraction_result.get('follow_up_question', 'Could you provide more details about your trip?')
@@ -108,45 +122,29 @@ class Handler(BaseHTTPRequestHandler):
                     "response": {
                         "type": "question",
                         "message": follow_up,
-                        "session_id": session_id,
-                        "extraction": extraction_result
+                        "extraction": extraction_result.get('extracted_info', {})
                     }
                 }
             
-            # Step 2: Create travel request
-            extracted_info = extraction_result['extracted_info']
-            travel_request = TravelRequest(
-                origin=extracted_info.get('origin'),
-                destination=extracted_info.get('destination'),
-                departure_date=datetime.strptime(extracted_info['departure_date'], '%Y-%m-%d').date() if extracted_info.get('departure_date') else None,
-                return_date=datetime.strptime(extracted_info['return_date'], '%Y-%m-%d').date() if extracted_info.get('return_date') else None,
-                duration_days=extracted_info.get('duration_days'),
-                passengers=extracted_info.get('passengers', 1),
-                budget=extracted_info.get('budget'),
-                user_email=extracted_info.get('user_email')
-            )
+            # Step 2: Get travel request from extraction result
+            travel_request = extraction_result['travel_request']
+            extracted_info = extraction_result.get('extracted_info', {})
             
             # Step 3: Search for travel package
-            search_result = search_service.search_travel_package(travel_request)
+            search_result = search_service.search_best_package(travel_request)
             
-            if not search_result.get('found', False):
+            if not search_result:
                 return {
                     "session_id": session_id,
                     "response": {
                         "type": "no_results",
                         "message": "I couldn't find any travel packages matching your criteria. Try adjusting your budget or dates.",
-                        "session_id": session_id,
                         "travel_request": extracted_info
                     }
                 }
             
             # Step 4: Send email
-            package = search_result['package']
-            email_sent = email_service.send_travel_package(
-                to_email=travel_request.user_email,
-                travel_request=travel_request,
-                package=package
-            )
+            email_sent = email_service.send_travel_package(travel_request, search_result)
             
             # Step 5: Return success response
             return {
@@ -154,20 +152,21 @@ class Handler(BaseHTTPRequestHandler):
                 "response": {
                     "type": "success",
                     "message": f"Perfect! I found a great travel package for {travel_request.origin} to {travel_request.destination}. I've sent the details to {travel_request.user_email}.",
-                    "session_id": session_id,
                     "travel_request": extracted_info,
-                    "package": package,
+                    "package": search_result.to_dict() if hasattr(search_result, 'to_dict') else search_result,
                     "email_sent": email_sent
                 }
             }
             
         except Exception as e:
+            print(f"Error in process_travel_request: {e}")
+            import traceback
+            traceback.print_exc()
             return {
                 "session_id": session_id,
                 "response": {
                     "type": "error",
-                    "message": f"Sorry, I encountered an error while processing your request: {str(e)}",
-                    "session_id": session_id
+                    "message": f"Sorry, I encountered an error while processing your request: {str(e)}"
                 }
             }
     
