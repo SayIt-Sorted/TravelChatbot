@@ -1,5 +1,5 @@
 """
-Minimal Vercel entry point
+Ultra-simple Vercel function
 """
 from http.server import BaseHTTPRequestHandler
 import json
@@ -9,29 +9,13 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Content-type', 'application/json')
         self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
         self.end_headers()
         
-        if self.path == '/api/health':
-            response = {
-                "status": "healthy",
-                "message": "Travel Booking API is running"
-            }
-        elif self.path == '/':
-            response = {
-                "message": "Travel Booking AI API",
-                "version": "1.0.0",
-                "endpoints": {
-                    "health": "/api/health",
-                    "chat": "/api/chat"
-                }
-            }
-        else:
-            response = {
-                "error": "Endpoint not found",
-                "available": ["/", "/api/health", "/api/chat"]
-            }
+        response = {
+            "status": "success",
+            "message": "Travel Booking API is working!",
+            "path": self.path
+        }
         
         self.wfile.write(json.dumps(response).encode())
     
@@ -39,45 +23,14 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Content-type', 'application/json')
         self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
         self.end_headers()
         
-        if self.path == '/api/chat':
-            # Read request body
-            content_length = int(self.headers.get('Content-Length', 0))
-            body = self.rfile.read(content_length)
-            
-            try:
-                data = json.loads(body)
-                message = data.get('message', '')
-                
-                # Simple response for now
-                response = {
-                    "response": {
-                        "type": "question",
-                        "message": f"I received your message: '{message}'. The full AI backend is being set up.",
-                        "session_id": "test-session"
-                    },
-                    "session_id": "test-session"
-                }
-            except:
-                response = {
-                    "error": "Invalid JSON in request body"
-                }
-        else:
-            response = {
-                "error": "Endpoint not found"
-            }
+        response = {
+            "status": "success",
+            "message": "POST request received",
+            "path": self.path
+        }
         
         self.wfile.write(json.dumps(response).encode())
-    
-    def do_OPTIONS(self):
-        self.send_response(200)
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
-        self.end_headers()
 
-# Export for Vercel
 handler = Handler 
