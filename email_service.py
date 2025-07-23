@@ -1,5 +1,5 @@
 """
-Email Service - Send travel booking confirmations via Gmail
+Email Service - Send travel booking confirmations via SMTP
 Step 7: Send final travel package to customer via email
 """
 
@@ -9,93 +9,73 @@ from email.mime.multipart import MIMEMultipart
 from typing import Optional
 from models import TravelRequest, TravelPackage
 from config import config
-from gmail_auth import GmailAuthService
 
 
 class EmailService:
-    """Service for sending travel booking emails"""
+    """Service for sending travel booking emails via SMTP"""
     
     def __init__(self):
-        # Try Gmail OAuth first, fallback to SMTP
-        self.gmail_auth = GmailAuthService()
-        self.use_oauth = False
+        email_config = config.get_email_config()
+        self.smtp_server = email_config['smtp_server']
+        self.smtp_port = email_config['smtp_port']
+        self.sender_email = email_config['email']
+        self.sender_password = email_config['password']
         
-        # Check if Gmail OAuth is available
-        if self.gmail_auth.is_authenticated() or self._try_gmail_auth():
-            self.use_oauth = True
-            print("✅ Using Gmail OAuth for email sending")
-        else:
-            # Fallback to SMTP configuration
-            email_config = config.get_email_config()
-            self.smtp_server = email_config['smtp_server']
-            self.smtp_port = email_config['smtp_port']
-            self.email = email_config['email']
-            self.password = email_config['password']
-            print("⚠️ Using SMTP fallback for email sending")
-    
-    def _try_gmail_auth(self) -> bool:
-        """Try to authenticate with Gmail OAuth silently"""
-        try:
-            return self.gmail_auth.authenticate()
-        except Exception:
-            return False
+        # Check if email is configured
+        if not self.sender_email or not self.sender_password:
+            print("⚠️ Email not configured - will print travel packages to console instead")
+            print("💡 Set SMTP_EMAIL and SMTP_PASSWORD in .env file to enable email sending")
     
     def send_travel_package(self, request: TravelRequest, package: Optional[TravelPackage]) -> bool:
         """
-        Step 7: Send final travel package to customer via Gmail
+        Step 7: Send final travel package to customer via email
         """
         
         # Create email content
         subject = f"🎉 Your Perfect Trip: {request.origin} → {request.destination}"
         body = self._create_email_body(request, package)
         
-        # Try Gmail OAuth first
-        if self.use_oauth:
+        # Try SMTP if configured
+        if self.sender_email and self.sender_password:
             try:
-                # Ensure user_email is set from OAuth if not provided
-                if not request.user_email and self.gmail_auth.get_user_email():
-                    request.user_email = self.gmail_auth.get_user_email()
+                print(f"📧 Attempting to send email to {request.user_email}...")
                 
-                success = self.gmail_auth.send_email(
-                    to_email=request.user_email,
-                    subject=subject,
-                    html_body=body
-                )
-                
-                if success:
-                    print(f"✅ Travel package sent via Gmail OAuth to {request.user_email}")
-                    return True
-                else:
-                    print("⚠️ Gmail OAuth failed, trying SMTP fallback...")
-                    
-            except Exception as e:
-                print(f"⚠️ Gmail OAuth error: {e}, trying SMTP fallback...")
-        
-        # Fallback to SMTP
-        if hasattr(self, 'email') and hasattr(self, 'password') and self.email and self.password:
-            try:
                 # Create message
                 msg = MIMEMultipart()
-                msg['From'] = self.email
+                msg['From'] = self.sender_email
                 msg['To'] = request.user_email
                 msg['Subject'] = subject
                 
                 msg.attach(MIMEText(body, 'html'))
                 
-                # Send email
-                with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
-                    server.starttls()
-                    server.login(self.email, self.password)
-                    server.send_message(msg)
+                # Send email with timeout
+                if self.smtp_port == 465:
+                    # Use SSL for port 465 (Hostinger)
+                    with smtplib.SMTP_SSL(self.smtp_server, self.smtp_port, timeout=10) as server:
+                        server.login(self.sender_email, self.sender_password)
+                        server.send_message(msg)
+                else:
+                    # Use STARTTLS for other ports
+                    with smtplib.SMTP(self.smtp_server, self.smtp_port, timeout=10) as server:
+                        server.starttls()
+                        server.login(self.sender_email, self.sender_password)
+                        server.send_message(msg)
                 
-                print(f"✅ Travel package sent via SMTP to {request.user_email}")
+                print(f"✅ Travel package sent via email to {request.user_email}")
                 return True
                 
+            except smtplib.SMTPAuthenticationError:
+                print("❌ Email authentication failed - check your email/password")
+                print("💡 For Gmail, use an App Password instead of your regular password")
+            except smtplib.SMTPConnectError:
+                print("❌ Could not connect to email server - check SMTP settings")
+            except smtplib.SMTPRecipientsRefused:
+                print(f"❌ Email address {request.user_email} is invalid")
             except Exception as e:
-                print(f"❌ SMTP email failed: {e}")
+                print(f"❌ Email sending failed: {e}")
         
-        # If all methods fail, print to console
-        print("⚠️ No email method available, printing email content instead:")
+        # If SMTP fails or not configured, print to console
+        print("⚠️ Email not configured or failed, printing travel package instead:")
         self._print_email_content(request, package)
         return True
     

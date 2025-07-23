@@ -27,6 +27,11 @@ class SearchService:
         Returns only 1 best option as specified in requirements
         """
         
+        # Quick budget check first
+        if request.budget and request.budget < 100:
+            print(f"⚠️ Budget €{request.budget} is too low for available options")
+            return None
+        
         if self.use_mock or not self._authenticate():
             return self._get_mock_package(request)
         
@@ -65,7 +70,8 @@ class SearchService:
                     "grant_type": "client_credentials",
                     "client_id": self.api_key,
                     "client_secret": self.api_secret
-                }
+                },
+                timeout=10  # 10 second timeout
             )
             
             if response.status_code == 200:
@@ -98,7 +104,8 @@ class SearchService:
             response = requests.get(
                 f"{self.base_url}/v2/shopping/flight-offers",
                 headers={"Authorization": f"Bearer {self.access_token}"},
-                params=params
+                params=params,
+                timeout=10  # 10 second timeout
             )
             
             if response.status_code == 200:
@@ -183,39 +190,34 @@ class SearchService:
     def _get_mock_package(self, request: TravelRequest) -> TravelPackage:
         """Generate mock travel package for testing"""
         
-        # Mock flight
+        # Check budget immediately - if too low, return None quickly
+        if request.budget and request.budget < 100:  # Minimum realistic budget
+            print(f"⚠️ Budget €{request.budget} is too low for available options")
+            return None
+        
+        # Mock flight with realistic pricing
+        base_flight_price = 89.99  # More realistic base price
         flight = FlightOption(
             airline="TAP Air Portugal",
             flight_number="TP1234",
             departure_time="08:30",
             arrival_time="11:45",
             duration="3h 15m",
-            price=156.99,
+            price=base_flight_price,
             stops=0,
             booking_url="https://www.flytap.com/booking/12345"
         )
         
-        # Mock accommodation
+        # Mock accommodation with realistic pricing
         accommodation = self._get_mock_accommodation(request)
         
-        # Apply budget constraint
+        # Calculate total price
         total_price = flight.price + (accommodation.total_price if accommodation else 0)
         
+        # Apply budget constraint
         if request.budget and total_price > request.budget:
-            # Try to fit within budget
-            if request.budget > flight.price:
-                # Reduce accommodation cost
-                remaining_budget = request.budget - flight.price
-                nights = request.duration_days or 3
-                max_per_night = remaining_budget / nights
-                
-                if accommodation and accommodation.price_per_night > max_per_night:
-                    accommodation.price_per_night = max_per_night * 0.9  # 10% buffer
-                    accommodation.total_price = accommodation.price_per_night * nights
-                    total_price = flight.price + accommodation.total_price
-            else:
-                # Budget too low, return None
-                return None
+            print(f"⚠️ Total package €{total_price:.2f} exceeds budget €{request.budget}")
+            return None
         
         return TravelPackage(
             flight=flight,
@@ -226,7 +228,7 @@ class SearchService:
     def _get_mock_accommodation(self, request: TravelRequest) -> AccommodationOption:
         """Generate mock accommodation"""
         nights = request.duration_days or 3
-        price_per_night = 89.00
+        price_per_night = 65.00  # More realistic price
         
         return AccommodationOption(
             name=f"Hotel Central {request.destination}",

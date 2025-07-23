@@ -95,4 +95,13 @@ class TravelPackage(BaseModel):
         
         summary.append(f"💰 Total Package: €{self.total_price}")
         
-        return "\n".join(summary) 
+        return "\n".join(summary)
+    
+    def to_dict(self) -> dict:
+        """Convert package to dictionary for API response"""
+        return {
+            "flight": self.flight.dict() if self.flight else None,
+            "accommodation": self.accommodation.dict() if self.accommodation else None,
+            "total_price": self.total_price,
+            "currency": self.currency
+        } 

@@ -1,6 +1,6 @@
 """
-Gmail OAuth Authentication Service
-Step 0: Customer logs in via Gmail OAuth for secure email access
+Customer Gmail Login Service (Optional)
+Step 0: Customer can optionally log in via Gmail to auto-fill their email
 """
 
 import os
@@ -17,46 +17,31 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
 
-class GmailAuthService:
-    """Gmail OAuth authentication and email sending service"""
+class CustomerGmailLogin:
+    """Optional customer Gmail login for email auto-fill"""
     
-    # Gmail API scopes needed
-    SCOPES = ['https://www.googleapis.com/auth/gmail.send']
+    # Only need profile scope to get email address
+    SCOPES = ['https://www.googleapis.com/auth/userinfo.email']
     
-    def __init__(self, credentials_file: str = 'credentials.json', token_file: str = 'token.json'):
+    def __init__(self, credentials_file: str = 'credentials.json', token_file: str = 'customer_token.json'):
         self.credentials_file = credentials_file
         self.token_file = token_file
         self.service = None
-        self.user_email = None
+        self.customer_email = None
     
-    def setup_oauth_credentials(self) -> bool:
-        """
-        Guide user through OAuth setup process
-        Returns True if credentials are properly configured
-        """
-        
-        if not os.path.exists(self.credentials_file):
-            print("❌ Gmail OAuth credentials not found!")
-            print("\n📝 To set up Gmail OAuth:")
-            print("1. Go to: https://console.cloud.google.com/")
-            print("2. Create a new project or select existing one")
-            print("3. Enable Gmail API")
-            print("4. Go to 'Credentials' > 'Create Credentials' > 'OAuth 2.0 Client IDs'")
-            print("5. Choose 'Desktop application'")
-            print("6. Download the JSON file and save as 'credentials.json'")
-            print("7. Run this app again")
-            return False
-        
-        return True
+    def is_setup_available(self) -> bool:
+        """Check if OAuth credentials are available"""
+        return os.path.exists(self.credentials_file)
     
-    def authenticate(self) -> bool:
+    def customer_login(self) -> Optional[str]:
         """
-        Authenticate user with Gmail OAuth
-        Returns True if authentication successful
+        Let customer log in with their Gmail to auto-fill email
+        Returns their email address if successful
         """
         
-        if not self.setup_oauth_credentials():
-            return False
+        if not self.is_setup_available():
+            print("⚠️ Gmail login not available (no credentials.json)")
+            return None
         
         creds = None
         
@@ -64,17 +49,15 @@ class GmailAuthService:
         if os.path.exists(self.token_file):
             try:
                 creds = Credentials.from_authorized_user_file(self.token_file, self.SCOPES)
-            except Exception as e:
-                print(f"⚠️ Error loading existing token: {e}")
+            except Exception:
+                pass
         
         # If no valid credentials, authenticate
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
                 try:
                     creds.refresh(Request())
-                    print("✅ Gmail token refreshed successfully")
-                except Exception as e:
-                    print(f"⚠️ Token refresh failed: {e}")
+                except Exception:
                     creds = None
             
             if not creds:
@@ -83,147 +66,71 @@ class GmailAuthService:
                         self.credentials_file, self.SCOPES
                     )
                     creds = flow.run_local_server(port=0)
-                    print("✅ Gmail OAuth authentication successful!")
                 except Exception as e:
-                    print(f"❌ OAuth authentication failed: {e}")
-                    return False
+                    print(f"❌ Gmail login failed: {e}")
+                    return None
             
-            # Save credentials for next run
+            # Save credentials for next time
             try:
                 with open(self.token_file, 'w') as token:
                     token.write(creds.to_json())
-                print("✅ Gmail credentials saved")
-            except Exception as e:
-                print(f"⚠️ Could not save credentials: {e}")
+            except Exception:
+                pass
         
-        # Build Gmail service
+        # Get customer email
         try:
-            self.service = build('gmail', 'v1', credentials=creds)
+            from googleapiclient.discovery import build
+            service = build('oauth2', 'v2', credentials=creds)
+            user_info = service.userinfo().get().execute()
+            self.customer_email = user_info.get('email')
             
-            # Get user email address
-            profile = self.service.users().getProfile(userId='me').execute()
-            self.user_email = profile.get('emailAddress')
-            
-            print(f"✅ Gmail authenticated as: {self.user_email}")
-            return True
-            
+            if self.customer_email:
+                print(f"✅ Logged in as: {self.customer_email}")
+                return self.customer_email
+            else:
+                print("❌ Could not get email from Gmail")
+                return None
+                
         except Exception as e:
-            print(f"❌ Failed to build Gmail service: {e}")
-            return False
+            print(f"❌ Failed to get user info: {e}")
+            return None
     
-    def send_email(self, to_email: str, subject: str, html_body: str) -> bool:
-        """
-        Send email using authenticated Gmail account
-        """
-        
-        if not self.service:
-            print("❌ Gmail not authenticated. Call authenticate() first.")
-            return False
-        
-        try:
-            # Create message
-            message = MIMEMultipart('alternative')
-            message['To'] = to_email
-            message['From'] = self.user_email
-            message['Subject'] = subject
-            
-            # Add HTML body
-            html_part = MIMEText(html_body, 'html')
-            message.attach(html_part)
-            
-            # Encode message
-            raw_message = base64.urlsafe_b64encode(message.as_bytes()).decode()
-            
-            # Send email
-            send_message = self.service.users().messages().send(
-                userId='me',
-                body={'raw': raw_message}
-            ).execute()
-            
-            print(f"✅ Email sent successfully to {to_email}")
-            print(f"   Message ID: {send_message['id']}")
-            return True
-            
-        except HttpError as error:
-            print(f"❌ Gmail API error: {error}")
-            return False
-        except Exception as e:
-            print(f"❌ Failed to send email: {e}")
-            return False
+    def get_customer_email(self) -> Optional[str]:
+        """Get the logged-in customer's email"""
+        return self.customer_email
     
-    def is_authenticated(self) -> bool:
-        """Check if user is currently authenticated"""
-        return self.service is not None and self.user_email is not None
-    
-    def get_user_email(self) -> Optional[str]:
-        """Get the authenticated user's email address"""
-        return self.user_email
+    def is_logged_in(self) -> bool:
+        """Check if customer is logged in"""
+        return self.customer_email is not None
     
     def logout(self) -> bool:
-        """Logout and clear stored credentials"""
+        """Logout customer"""
         try:
             if os.path.exists(self.token_file):
                 os.remove(self.token_file)
-            self.service = None
-            self.user_email = None
+            self.customer_email = None
             print("✅ Logged out successfully")
             return True
-        except Exception as e:
-            print(f"❌ Logout failed: {e}")
+        except Exception:
             return False
 
 
-def setup_gmail_oauth():
-    """
-    Interactive setup helper for Gmail OAuth
-    """
-    print("🔐 Gmail OAuth Setup")
-    print("=" * 40)
-    
-    gmail_auth = GmailAuthService()
-    
-    if gmail_auth.authenticate():
-        print("\n✅ Gmail OAuth setup complete!")
-        print(f"Authenticated as: {gmail_auth.get_user_email()}")
-        
-        # Test email sending
-        test_email = input(f"\nSend test email to {gmail_auth.get_user_email()}? (y/N): ")
-        if test_email.lower() == 'y':
-            success = gmail_auth.send_email(
-                to_email=gmail_auth.get_user_email(),
-                subject="🎉 Travel AI - Gmail OAuth Test",
-                html_body="""
-                <html>
-                <body style="font-family: Arial, sans-serif; padding: 20px;">
-                    <h2 style="color: #2c3e50;">🎉 Gmail OAuth Working!</h2>
-                    <p>Congratulations! Your Travel Booking AI can now send emails through Gmail OAuth.</p>
-                    <p>This test email confirms that:</p>
-                    <ul>
-                        <li>✅ OAuth authentication is working</li>
-                        <li>✅ Gmail API access is granted</li>
-                        <li>✅ Email sending is functional</li>
-                    </ul>
-                    <p>You're ready to start booking trips! 🚀</p>
-                    <hr>
-                    <p style="color: #7f8c8d; font-size: 12px;">
-                        Sent by Travel Booking AI<br>
-                        <em>sayitsorted.com</em>
-                    </p>
-                </body>
-                </html>
-                """
-            )
-            
-            if success:
-                print("✅ Test email sent! Check your inbox.")
-            else:
-                print("❌ Test email failed.")
-        
-        return True
-    else:
-        print("\n❌ Gmail OAuth setup failed.")
-        return False
+def quick_setup_info():
+    """Show quick setup info for Gmail login"""
+    print("🔐 Optional: Customer Gmail Login Setup")
+    print("=" * 45)
+    print("This allows customers to login with Gmail to auto-fill their email.")
+    print("It's completely optional - customers can just type their email instead.")
+    print()
+    print("To enable this feature:")
+    print("1. Go to: https://console.cloud.google.com/")
+    print("2. Create a project and enable 'Google+ API'")
+    print("3. Create OAuth 2.0 credentials for 'Desktop application'")
+    print("4. Download as 'credentials.json'")
+    print("5. Customers can then use 'login' command in the app")
+    print()
+    print("💡 Without this, customers just type their email - works perfectly!")
 
 
 if __name__ == "__main__":
-    setup_gmail_oauth() 
+    quick_setup_info() 

@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Travel Booking AI Chat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .chat-container {
+            width: 90%;
+            max-width: 800px;
+            height: 90vh;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .chat-header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .chat-header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            word-wrap: break-word;
+            line-height: 1.4;
+        }
+
+        .message.user .message-content {
+            background: #667eea;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.bot .message-content {
+            background: white;
+            color: #333;
+            border: 1px solid #e1e5e9;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            margin: 0 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .message.user .message-avatar {
+            background: #667eea;
+            color: white;
+        }
+
+        .message.bot .message-avatar {
+            background: #764ba2;
+            color: white;
+        }
+
+        .chat-input-container {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e1e5e9;
+        }
+
+        .chat-input-form {
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e1e5e9;
+            border-radius: 25px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .chat-input:focus {
+            border-color: #667eea;
+        }
+
+        .send-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s;
+        }
+
+        .send-button:hover {
+            transform: scale(1.05);
+        }
+
+        .send-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .status {
+            text-align: center;
+            padding: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .status.connected {
+            color: #28a745;
+        }
+
+        .status.error {
+            color: #dc3545;
+        }
+
+        .example-messages {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 10px;
+        }
+
+        .example-messages h4 {
+            margin-bottom: 10px;
+            color: #667eea;
+        }
+
+        .example-message {
+            display: inline-block;
+            margin: 5px;
+            padding: 8px 12px;
+            background: white;
+            border: 1px solid #e1e5e9;
+            border-radius: 15px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .example-message:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h1>✈️ Travel Booking AI</h1>
+            <p>Tell me where you want to go and I'll find the best travel package for you!</p>
+        </div>
+
+        <div class="chat-messages" id="chatMessages">
+            <div class="message bot">
+                <div class="message-avatar">🤖</div>
+                <div class="message-content">
+                    Hi! I'm your AI travel assistant. I can help you book complete trips with flights and accommodation. 
+                    Just tell me where you want to go, when, and your budget!
+                </div>
+            </div>
+        </div>
+
+        <div class="status" id="status">Connecting to backend...</div>
+
+        <div class="example-messages" id="exampleMessages" style="display: none;">
+            <h4>💡 Try these examples:</h4>
+            <div class="example-message" onclick="sendMessage('Book a trip from Porto to London next weekend for 3 days under 500 euros')">
+                Porto to London, 3 days, €500
+            </div>
+            <div class="example-message" onclick="sendMessage('I want to go from NYC to Paris on December 15th for a week')">
+                NYC to Paris, 1 week
+            </div>
+            <div class="example-message" onclick="sendMessage('Find me a flight and hotel from Madrid to Rome')">
+                Madrid to Rome
+            </div>
+        </div>
+
+        <div class="chat-input-container">
+            <form class="chat-input-form" id="chatForm">
+                <input 
+                    type="text" 
+                    class="chat-input" 
+                    id="messageInput" 
+                    placeholder="Tell me where you want to go..."
+                    autocomplete="off"
+                >
+                <button type="submit" class="send-button" id="sendButton">
+                    <span id="sendIcon">➤</span>
+                    <div class="loading" id="loadingIcon" style="display: none;"></div>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Get API URL from URL parameters or use default
+        const urlParams = new URLSearchParams(window.location.search);
+        const API_BASE_URL = urlParams.get('api') || 'http://localhost:8000';
+        let sessionId = null;
+        let isConnected = false;
+
+        // DOM elements
+        const chatMessages = document.getElementById('chatMessages');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        const sendIcon = document.getElementById('sendIcon');
+        const loadingIcon = document.getElementById('loadingIcon');
+        const chatForm = document.getElementById('chatForm');
+        const status = document.getElementById('status');
+        const exampleMessages = document.getElementById('exampleMessages');
+
+        // Check backend connection
+        async function checkConnection() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/health`);
+                if (response.ok) {
+                    isConnected = true;
+                    status.textContent = '✅ Connected to backend';
+                    status.className = 'status connected';
+                    exampleMessages.style.display = 'block';
+                } else {
+                    throw new Error('Backend not responding');
+                }
+            } catch (error) {
+                isConnected = false;
+                status.textContent = '❌ Cannot connect to backend. Make sure it\'s running on http://localhost:8000';
+                status.className = 'status error';
+            }
+        }
+
+        // Add message to chat
+        function addMessage(content, isUser = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user' : 'bot'}`;
+            
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar';
+            avatar.textContent = isUser ? '👤' : '🤖';
+            
+            const messageContent = document.createElement('div');
+            messageContent.className = 'message-content';
+            messageContent.textContent = content;
+            
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(messageContent);
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Send message to backend
+        async function sendMessage(message) {
+            if (!message.trim() || !isConnected) return;
+
+            // Add user message to chat
+            addMessage(message, true);
+            messageInput.value = '';
+
+            // Show loading state
+            sendButton.disabled = true;
+            sendIcon.style.display = 'none';
+            loadingIcon.style.display = 'block';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        session_id: sessionId
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                sessionId = data.session_id;
+
+                // Add bot response to chat
+                addMessage(data.response.message);
+
+                // If this was a complete request, show a new session message
+                if (data.response.type === 'complete') {
+                    setTimeout(() => {
+                        addMessage('Ready to plan another trip? Just tell me where you\'d like to go next!');
+                    }, 1000);
+                }
+
+            } catch (error) {
+                console.error('Error:', error);
+                addMessage('Sorry, I encountered an error. Please try again.');
+            } finally {
+                // Reset loading state
+                sendButton.disabled = false;
+                sendIcon.style.display = 'block';
+                loadingIcon.style.display = 'none';
+            }
+        }
+
+        // Handle form submission
+        chatForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const message = messageInput.value.trim();
+            if (message) {
+                sendMessage(message);
+            }
+        });
+
+        // Handle Enter key
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                const message = messageInput.value.trim();
+                if (message) {
+                    sendMessage(message);
+                }
+            }
+        });
+
+        // Auto-focus input
+        messageInput.focus();
+
+        // Check connection on load
+        checkConnection();
+
+        // Re-check connection every 30 seconds
+        setInterval(checkConnection, 30000);
+    </script>
+</body>
+</html> 
