@@ -95,10 +95,24 @@ class Handler(BaseHTTPRequestHandler):
     def process_travel_request(self, message: str, session_id: str) -> dict:
         """Process travel request with AI, search, and email"""
         try:
+            # Debug: Check environment variables
+            import os
+            print(f"🔍 Environment check for session {session_id}:")
+            print(f"   SMTP_EMAIL: {'✅ Set' if os.getenv('SMTP_EMAIL') else '❌ Missing'}")
+            print(f"   SMTP_PASSWORD: {'✅ Set' if os.getenv('SMTP_PASSWORD') else '❌ Missing'}")
+            print(f"   VERCEL: {'✅ Yes' if os.getenv('VERCEL') else '❌ No'}")
+            
             # Initialize services
             travel_ai = TravelAI()
             search_service = SearchService()
             email_service = EmailService()
+            
+            # Debug: Check email service configuration
+            print(f"📧 EmailService config:")
+            print(f"   SMTP Server: {email_service.smtp_server}")
+            print(f"   SMTP Port: {email_service.smtp_port}")
+            print(f"   Sender Email: {'✅ Set' if email_service.sender_email else '❌ Missing'}")
+            print(f"   Sender Password: {'✅ Set' if email_service.sender_password else '❌ Missing'}")
             
             # Get existing session data
             session_data = SESSIONS.get(session_id, {})
@@ -204,6 +218,7 @@ class Handler(BaseHTTPRequestHandler):
         
         # Send email
         print(f"📧 Attempting to send email to {travel_request.user_email}...")
+        print(f"📧 Email service configured: {bool(email_service.sender_email and email_service.sender_password)}")
         email_sent = email_service.send_travel_package(travel_request, search_result)
         print(f"📧 Email result: {email_sent}")
         
