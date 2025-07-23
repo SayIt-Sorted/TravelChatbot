@@ -65,7 +65,11 @@ class Handler(BaseHTTPRequestHandler):
                 # Process the message safely
                 ai_response = self.process_chat_message_safe(message)
                 
+                # Return response in the format expected by the frontend
                 response = {
+                    "status": "success",
+                    "message": "POST request received",
+                    "path": "/api/chat",
                     "session_id": session_id,
                     "response": {
                         "type": "question",
@@ -75,6 +79,9 @@ class Handler(BaseHTTPRequestHandler):
                 }
             else:
                 response = {
+                    "status": "error",
+                    "message": "Endpoint not found",
+                    "path": self.path,
                     "session_id": str(uuid.uuid4()),
                     "response": {
                         "type": "error",
@@ -89,6 +96,9 @@ class Handler(BaseHTTPRequestHandler):
             # If everything fails, return a safe error response
             try:
                 error_response = {
+                    "status": "error",
+                    "message": "Internal server error",
+                    "path": "/api/chat",
                     "session_id": str(uuid.uuid4()),
                     "response": {
                         "type": "error",
@@ -130,6 +140,10 @@ class Handler(BaseHTTPRequestHandler):
             # Handle city mentions
             if any(word in message_lower for word in ['porto', 'london', 'paris', 'madrid', 'rome', 'nyc']):
                 return f"I see you mentioned travel! That sounds exciting. To help you book this trip, I need a few more details:\n\n- When do you want to travel?\n- How many people?\n- What's your budget?\n- Do you need accommodation as well?"
+            
+            # Handle budget mentions
+            if any(word in message_lower for word in ['500', '1000', 'budget', 'euros', 'dollars']):
+                return "Great! I can see you have a budget in mind. To help you find the best travel options, I need to know:\n\n📍 Where you're traveling from and to\n📅 When you want to travel\n👥 How many travelers\n\nFor example: 'I want to go from Porto to London next weekend for 3 days under 500 euros'"
             
             # Default response
             return "I understand you want to plan a trip! To help you best, please tell me:\n\n📍 Where you're traveling from and to\n📅 When you want to travel\n👥 How many travelers\n💰 Your budget\n\nFor example: 'I want to go from Porto to London next weekend for 3 days under 500 euros'"
@@ -176,17 +190,21 @@ class Handler(BaseHTTPRequestHandler):
             elif 'week' in message_lower:
                 duration = "1 week"
             
-            return f"""🎉 Great! I understand your travel request:
+            return f"""🎉 Perfect! I understand your travel request:
 
 📍 Route: {origin} → {destination}
 ⏱️ Duration: {duration}
 💰 Budget: {budget}
 
-I'm currently setting up the full AI travel booking system. For now, I can confirm I understand your request and I'm working on processing it.
+I'm currently setting up the full AI travel booking system with real-time flight search and accommodation booking. Your request has been logged and I'm working on processing it.
 
-The complete booking system with flight search and accommodation will be available soon!
+While the complete system is being finalized, I can help you with:
+• Travel planning advice for {destination}
+• Budget optimization tips
+• Best time to visit recommendations
+• Alternative route suggestions
 
-Would you like me to help you with anything else about this trip?"""
+Would you like me to help you plan the details of your {destination} trip while the booking system is being set up?"""
             
         except Exception as e:
             return "I understand you want to book a trip! I'm currently setting up the full travel booking system. Your request has been received and I'm working on processing it. Please try again in a moment!"
