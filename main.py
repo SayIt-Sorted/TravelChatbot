@@ -58,7 +58,8 @@ app.add_middleware(
         "http://localhost:5173", 
         "https://*.vercel.app",
         "https://*.netlify.app",
-        "https://*.github.io"
+        "https://*.github.io",
+        "https://your-react-frontend.vercel.app"  # Add your React frontend URL here
     ],  # Configure for your frontend domain in production
     allow_credentials=True,
     allow_methods=["*"],
