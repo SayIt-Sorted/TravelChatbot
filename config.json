@@ -5,7 +5,8 @@
   },
   "email": {
     "smtp_server": "smtp.hostinger.com",
-    "smtp_port": 465
+    "smtp_port": 465,
+    "updated": "2025-07-23"
   },
   "flight_search": {
     "use_mock": true,

@@ -124,6 +124,7 @@ SMTP Server: {email_service.smtp_server}
 SMTP Port: {email_service.smtp_port}
 Sender Email: {'✅ Set' if email_service.sender_email else '❌ Missing'}
 Sender Password: {'✅ Set' if email_service.sender_password else '❌ Missing'}
+Config Source: {'Vercel' if os.getenv('VERCEL') else 'Local'}
 """
             print(email_debug, file=sys.stderr)
             sys.stderr.flush()
