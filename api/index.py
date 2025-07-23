@@ -97,10 +97,15 @@ class Handler(BaseHTTPRequestHandler):
         try:
             # Debug: Check environment variables
             import os
-            print(f"🔍 Environment check for session {session_id}:")
-            print(f"   SMTP_EMAIL: {'✅ Set' if os.getenv('SMTP_EMAIL') else '❌ Missing'}")
-            print(f"   SMTP_PASSWORD: {'✅ Set' if os.getenv('SMTP_PASSWORD') else '❌ Missing'}")
-            print(f"   VERCEL: {'✅ Yes' if os.getenv('VERCEL') else '❌ No'}")
+            import sys
+            debug_info = f"""
+🔍 ENVIRONMENT DEBUG - Session {session_id}
+SMTP_EMAIL: {'✅ Set' if os.getenv('SMTP_EMAIL') else '❌ Missing'}
+SMTP_PASSWORD: {'✅ Set' if os.getenv('SMTP_PASSWORD') else '❌ Missing'}
+VERCEL: {'✅ Yes' if os.getenv('VERCEL') else '❌ No'}
+"""
+            print(debug_info, file=sys.stderr)
+            sys.stderr.flush()
             
             # Initialize services
             travel_ai = TravelAI()
