@@ -97,9 +97,12 @@ def main():
     test_message_with_email = "Book a trip from Porto to London next weekend for 3 days under 500 euros. My email is test@example.com"
     # Test data without email
     test_message_without_email = "Book a trip from Porto to London next weekend for 3 days under 500 euros"
+    # Test email follow-up
+    test_email_followup = "joaopaesteves99@gmail.com"
     
     print(f"📝 Test 1: With email - {test_message_with_email}")
     print(f"📝 Test 2: Without email - {test_message_without_email}")
+    print(f"📝 Test 3: Email follow-up - {test_email_followup}")
     print()
     
     # Start server
@@ -122,12 +125,19 @@ def main():
         # Test 2: Without email (should ask for email)
         print("🔍 Test 2: Testing without email...")
         success2 = server.test_chat(test_message_without_email, "test-session-2")
+        print()
         
-        if success1 and success2:
+        # Test 3: Email follow-up (should complete the request)
+        print("🔍 Test 3: Testing email follow-up...")
+        success3 = server.test_chat(test_email_followup, "test-session-2")  # Same session as test 2
+        print()
+        
+        if success1 and success2 and success3:
             print("\n🎉 API TEST SUCCESSFUL!")
-            print("✅ The API correctly handles both scenarios:")
+            print("✅ The API correctly handles all scenarios:")
             print("   - With email: Completes and sends package")
             print("   - Without email: Asks for email first")
+            print("   - Email follow-up: Completes the request")
         else:
             print("\n❌ API TEST FAILED!")
             print("⚠️ Check the logs above for issues")

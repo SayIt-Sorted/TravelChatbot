@@ -40,7 +40,7 @@ class Handler(BaseHTTPRequestHandler):
             "endpoints": ["/api/chat"]
         }
         
-        self.wfile.write(json.dumps(response).encode())
+        self.wfile.write(json.dumps(response, default=str).encode())
     
     def do_POST(self):
         self.send_response(200)
@@ -90,7 +90,7 @@ class Handler(BaseHTTPRequestHandler):
                 }
             }
         
-        self.wfile.write(json.dumps(response).encode())
+        self.wfile.write(json.dumps(response, default=str).encode())
     
     def process_travel_request(self, message: str, session_id: str) -> dict:
         """Process travel request with AI, search, and email"""
