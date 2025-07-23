@@ -115,6 +115,15 @@ VERCEL: {'✅ Yes' if os.getenv('VERCEL') else '❌ No'}
             # Initialize services
             travel_ai = TravelAI()
             search_service = SearchService()
+            
+            # Force config refresh for Vercel
+            if os.getenv('VERCEL'):
+                from config import config
+                config.set('email.smtp_server', 'smtp.hostinger.com')
+                config.set('email.smtp_port', 465)
+                print("🔄 FORCED CONFIG REFRESH FOR VERCEL", file=sys.stderr)
+                sys.stderr.flush()
+            
             email_service = EmailService()
             
             # Debug: Check email service configuration

@@ -46,8 +46,9 @@ class Config:
                 "temperature": 0.1
             },
             "email": {
-                "smtp_server": "smtp.gmail.com",
-                "smtp_port": 587
+                "smtp_server": "smtp.hostinger.com",
+                "smtp_port": 465,
+                "updated": "2025-07-23-fixed"
             },
             "flight_search": {
                 "use_mock": True,
