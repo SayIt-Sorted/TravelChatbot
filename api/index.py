@@ -183,10 +183,14 @@ class Handler(BaseHTTPRequestHandler):
     
     def _complete_travel_request(self, travel_request: TravelRequest, session_id: str, search_service, email_service) -> dict:
         """Complete travel request with search and email"""
+        print(f"🔍 Completing travel request for session {session_id}")
+        print(f"📧 Email: {travel_request.user_email}")
+        
         # Search for travel package
         search_result = search_service.search_best_package(travel_request)
         
         if not search_result:
+            print("❌ No search results found")
             return {
                 "session_id": session_id,
                 "response": {
@@ -196,12 +200,17 @@ class Handler(BaseHTTPRequestHandler):
                 }
             }
         
+        print(f"✅ Search result found: {type(search_result)}")
+        
         # Send email
+        print(f"📧 Attempting to send email to {travel_request.user_email}...")
         email_sent = email_service.send_travel_package(travel_request, search_result)
+        print(f"📧 Email result: {email_sent}")
         
         # Clear session after completion
         if session_id in SESSIONS:
             del SESSIONS[session_id]
+            print(f"🗑️ Session {session_id} cleared")
         
         # Return success response
         return {
