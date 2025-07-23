@@ -1,0 +1,8 @@
+.env
+__pycache__/
+config.json
+venv/
+
+# Gmail OAuth credentials
+credentials.json
+token.json
